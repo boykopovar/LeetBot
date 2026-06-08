@@ -12,9 +12,11 @@ from src.handlers import register_all_routers
 from src.logger import logger
 from src.session.registry import session_registry
 from src.smtp.handler import MailHandler
+from src.smtp.log_filter import suppress_smtp_noise
 from src.smtp.server import start_smtp_server
 
 logging.getLogger("aiogram.event").setLevel(logging.WARNING)
+suppress_smtp_noise()
 
 
 async def main() -> None:
@@ -29,7 +31,7 @@ async def main() -> None:
         host=SMTP_HOST,
         port=SMTP_PORT,
     )
-    logger.info("SMTP %s:%s", SMTP_HOST, SMTP_PORT)
+    logger.info(f"SMTP {SMTP_HOST}:{SMTP_PORT}")
 
     try:
         await dp.start_polling(bot, handle_signals=False)
