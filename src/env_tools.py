@@ -29,7 +29,6 @@ ENV_DEFAULTS: Dict[str, Union[str, int]] = {
     _SMTP_PORT: 25,
     _SESSION_MINUTES: 5,
     _LOG_FILE: "LeetBot.log",
-    _ENCRYPT_KEY: "",
     _ADMIN_IDS: "",
 }
 
@@ -38,7 +37,6 @@ OPTIONAL_VALUES: List[str] = [
     _SMTP_PORT,
     _SESSION_MINUTES,
     _LOG_FILE,
-    _ENCRYPT_KEY,
     _ADMIN_IDS,
 ]
 
