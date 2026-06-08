@@ -6,14 +6,13 @@ from aiogram.types import BufferedInputFile
 from aiosmtpd.smtp import Envelope, Session, SMTP as SMTPProtocol
 
 from src.logger import logger
+from src.services.caption_service import build_caption
 from src.services.filename_service import make_filename
 from src.services.mail_parser import get_subject, to_html
 from src.session.registry import SessionRegistry
 
 _REPLY_OK: str = "250 OK"
 _REPLY_NO_USER: str = "550 No such user"
-_CAPTION_FMT: str = "From: {sender}\nIP: {ip}\nReceived (UTC): {time}"
-_DT_FMT: str = "%Y-%m-%d %H:%M:%S"
 _ENCODING: str = "utf-8"
 
 
@@ -51,10 +50,10 @@ class MailHandler:
             else raw_content.encode(_ENCODING)
         )
 
+        received_at: datetime = datetime.now(timezone.utc)
         sender: str = envelope.mail_from or ""
         ip: str = session.peer[0] if session.peer else ""
-        received_at: str = datetime.now(timezone.utc).strftime(_DT_FMT)
-        caption: str = _CAPTION_FMT.format(sender=sender, ip=ip, time=received_at)
+        caption: str = build_caption(sender, ip, received_at)
 
         subject: Optional[str] = get_subject(raw)
         filename: str = make_filename(subject, sender)
@@ -69,6 +68,7 @@ class MailHandler:
                     chat_id=user_id,
                     document=BufferedInputFile(file_bytes, filename=filename),
                     caption=caption,
+                    parse_mode="HTML",
                 )
             except Exception as exc:
                 logger.error("send_document to %s failed: %s", user_id, exc)
