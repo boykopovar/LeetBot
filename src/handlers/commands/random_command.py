@@ -19,7 +19,7 @@ _MSG_READY: str = "🎲 Ваш адрес: {email}\nПисьма будут пе
 async def _expiry_task(user_id: int, minutes: int) -> None:
     await asyncio.sleep(minutes * 60)
     session_registry.remove(user_id)
-    logger.info("Session expired for user %s", user_id)
+    logger.info(f"Session expired for user {user_id}")
 
 
 @RANDOM_CMD_ROUTER.message(EnabledUserFilter(), Command("random"))

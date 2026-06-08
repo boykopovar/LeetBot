@@ -24,7 +24,7 @@ _MSG_NOT_YOURS: str = "❌ Этот адрес не из вашего множе
 async def _expiry_task(user_id: int, minutes: int) -> None:
     await asyncio.sleep(minutes * 60)
     session_registry.remove(user_id)
-    logger.info("Session expired for user %s", user_id)
+    logger.info(f"Session expired for user {user_id}")
 
 
 def _register(user_id: int, normalized: str) -> bool:

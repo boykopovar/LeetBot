@@ -14,10 +14,6 @@ from src.session.registry import SessionRegistry
 _REPLY_OK: str = "250 OK"
 _REPLY_NO_USER: str = "550 No such user"
 _ENCODING: str = "utf-8"
-_LOG_ACCEPTED: str = "smtp: accepted from %s to %s"
-_LOG_REJECTED: str = "smtp: rejected from %s (no active sessions)"
-_LOG_DELIVERED: str = "smtp: delivered %s to user %s"
-_LOG_SEND_ERR: str = "smtp: send_document to %s failed: %s"
 
 
 class MailHandler:
@@ -35,9 +31,9 @@ class MailHandler:
     ) -> str:
         ip: str = session.peer[0] if session.peer else "?"
         if self._registry.find_user(address) is None:
-            logger.info(_LOG_REJECTED, ip, address)
+            logger.info(f"smtp: rejected from {ip} (no active sessions)")
             return _REPLY_NO_USER
-        logger.info(_LOG_ACCEPTED, ip, address)
+        logger.info(f"smtp: accepted from {ip} to {address}")
         envelope.rcpt_tos.append(address)
         return _REPLY_OK
 
@@ -77,8 +73,8 @@ class MailHandler:
                     caption=caption,
                     parse_mode="HTML",
                 )
-                logger.info(_LOG_DELIVERED, recipient, user_id)
+                logger.info(f"smtp: delivered {recipient} to user {user_id}")
             except Exception as exc:
-                logger.error(_LOG_SEND_ERR, user_id, exc)
+                logger.error(f"smtp: send_document to {user_id} failed: {exc}")
 
         return _REPLY_OK
