@@ -1,6 +1,7 @@
 import asyncio
 
-from aiogram import Router
+from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message
 from email_validator import EmailNotValidError, validate_email
 
@@ -24,7 +25,7 @@ async def _expiry_task(user_id: int, minutes: int) -> None:
     logger.info("Session expired for user %s", user_id)
 
 
-@EMAIL_CMD_ROUTER.message(EnabledUserFilter())
+@EMAIL_CMD_ROUTER.message(EnabledUserFilter(), F.text, ~F.text.startswith("/"))
 async def handle_email_input(message: Message) -> None:
     if message.from_user is None or message.text is None:
         return
