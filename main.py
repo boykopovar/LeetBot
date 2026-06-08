@@ -31,7 +31,7 @@ async def main() -> None:
         host=SMTP_HOST,
         port=SMTP_PORT,
     )
-    logger.info(f"SMTP {SMTP_HOST}:{SMTP_PORT}")
+    logger.info(f"SMTP on {SMTP_HOST}:{SMTP_PORT}")
 
     try:
         await dp.start_polling(bot, handle_signals=False)
