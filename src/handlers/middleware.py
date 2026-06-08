@@ -13,7 +13,6 @@ _TYPE_MSG: str = "msg"
 _UNKNOWN_USER: str = "?"
 
 
-
 _avg_handle_time: float = 0.0
 
 
@@ -101,5 +100,5 @@ class UpdateLogMiddleware(BaseMiddleware):
             content: str = _extract_content(event)
             content_str: str = f" '{content[:_CONTENT_MAX]}'" if content else ""
             label: str = _event_type_label(event)
-            logger.info("%s: %dms from (%s) %s:%s", label, ms, user_id, name, content_str)
+            logger.info(f"{label}: {ms}ms from ({user_id}) {name}:{content_str}")
             _update_avg(ms)
