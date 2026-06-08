@@ -12,7 +12,7 @@ _SMTP_HOST: str = "SMTP_HOST"
 _SMTP_PORT: str = "SMTP_PORT"
 _SESSION_MINUTES: str = "SESSION_MINUTES"
 _LOG_FILE: str = "LOG_FILE"
-_RANDOM_KEY: str = "RANDOM_KEY"
+_ENCRYPT_KEY: str = "ENCRYPT_KEY"
 _ADMIN_IDS: str = "ADMIN_IDS"
 
 ENV_FILE: str = ".env"
@@ -29,7 +29,7 @@ ENV_DEFAULTS: Dict[str, Union[str, int]] = {
     _SMTP_PORT: 25,
     _SESSION_MINUTES: 5,
     _LOG_FILE: "LeetBot.log",
-    _RANDOM_KEY: "",
+    _ENCRYPT_KEY: "",
     _ADMIN_IDS: "",
 }
 
@@ -38,7 +38,7 @@ OPTIONAL_VALUES: List[str] = [
     _SMTP_PORT,
     _SESSION_MINUTES,
     _LOG_FILE,
-    _RANDOM_KEY,
+    _ENCRYPT_KEY,
     _ADMIN_IDS,
 ]
 
@@ -101,14 +101,14 @@ LOG_FILE: str = require_env(_LOG_FILE)
 
 
 def _load_or_generate_random_key() -> bytes:
-    raw: str = os.getenv(_RANDOM_KEY, "").strip()
+    raw: str = os.getenv(_ENCRYPT_KEY, "").strip()
     if raw:
         return bytes.fromhex(raw)
     generated: str = secrets.token_hex(32)
     path = Path(ENV_FILE)
     with path.open("a", encoding=_UTF8) as f:
-        f.write(f"{_NEWLINE}{_RANDOM_KEY}{_EQUALS}{generated}")
-    os.environ[_RANDOM_KEY] = generated
+        f.write(f"{_NEWLINE}{_ENCRYPT_KEY}{_EQUALS}{generated}")
+    os.environ[_ENCRYPT_KEY] = generated
     return bytes.fromhex(generated)
 
 
