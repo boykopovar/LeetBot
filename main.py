@@ -18,7 +18,7 @@ from src.env_tools import (
     SMTP_PORT,
     SSL_CERTFILE,
     SSL_KEYFILE,
-    TOKEN_TTL_DAYS,
+    TOKEN_TTL_DAYS, DOMAIN,
 )
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.logger import logger
@@ -52,7 +52,7 @@ async def main() -> None:
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
-    docs_url = f"https://{API_HOST}:{API_PORT}{DOCS_PATH}"
+    docs_url = f"https://{DOMAIN}:{API_PORT}{DOCS_PATH}"
     register_all_routers(dp, store, signer, TOKEN_TTL_DAYS, docs_url)
 
     mail_handler = MailHandler(store=store, bot=bot)
