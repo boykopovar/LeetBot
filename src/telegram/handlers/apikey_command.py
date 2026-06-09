@@ -12,19 +12,20 @@ _MSG_KEY: str = (
     "🔑 Ваш API-ключ (действителен {days} дн.):\n\n"
     "<code>{token}</code>\n\n"
     "Используйте заголовок:\n"
-    "<code>Authorization: Bearer {token}</code>"
+    "<code>Authorization: Bearer {token}</code>\n\n"
+    "Документация: {docs_url}"
 )
 _MSG_EXPIRED_NOTE: str = "⚠️ Предыдущий ключ становится недействительным."
 
 
-def make_apikey_router(signer: TokenSigner, ttl_days: int) -> Router:
+def make_apikey_router(signer: TokenSigner, ttl_days: int, docs_url: str) -> Router:
     @APIKEY_CMD_ROUTER.message(EnabledUserFilter(), Command("apikey"))
     async def handle_apikey(message: Message) -> None:
         if message.from_user is None:
             return
         token = signer.sign(message.from_user.id)
         await message.answer(
-            _MSG_KEY.format(token=token, days=ttl_days),
+            _MSG_KEY.format(token=token, days=ttl_days, docs_url=docs_url),
             parse_mode=PARSE_MODE_HTML,
         )
 

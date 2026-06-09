@@ -13,8 +13,9 @@ def register_all_routers(
     store: InMemorySessionStore,
     signer: TokenSigner,
     ttl_days: int,
+    docs_url: str,
 ) -> None:
     dp.update.outer_middleware(UpdateLogMiddleware())
     dp.include_router(make_email_router(store))
     dp.include_router(make_random_router(store))
-    dp.include_router(make_apikey_router(signer, ttl_days))
+    dp.include_router(make_apikey_router(signer, ttl_days, docs_url))

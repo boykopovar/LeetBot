@@ -8,6 +8,7 @@ import uvicorn
 from aiogram import Bot, Dispatcher
 
 from src.api.app import create_app
+from src.constants import DOCS_PATH
 from src.env_tools import (
     API_HOST,
     API_PORT,
@@ -51,7 +52,8 @@ async def main() -> None:
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
-    register_all_routers(dp, store, signer, TOKEN_TTL_DAYS)
+    docs_url = f"https://{API_HOST}:{API_PORT}{DOCS_PATH}"
+    register_all_routers(dp, store, signer, TOKEN_TTL_DAYS, docs_url)
 
     mail_handler = MailHandler(store=store, bot=bot)
     smtp_server = await start_smtp_server(
