@@ -37,6 +37,8 @@ class _MailMessageResponse(BaseModel):
     subject: str
     body_html: str
     received_at_unix: int
+    sender_ip: str
+    originating_ip: Optional[str]
 
 
 def make_mail_router(
@@ -95,6 +97,8 @@ def make_mail_router(
             subject=message.subject,
             body_html=message.body_html,
             received_at_unix=message.received_at_unix,
+            sender_ip=message.sender_ip,
+            originating_ip=message.originating_ip,
         )
 
     return router

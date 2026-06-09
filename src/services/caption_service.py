@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 _LABEL_FROM: str = "📨 <b>Отправитель:</b>"
-_LABEL_IP: str = "🌐 <b>IP:</b>"
+_LABEL_IP: str = "🌐 <b>IP отправителя:</b>"
+_LABEL_ORIG_IP: str = "🖥 <b>X-Originating-IP:</b>"
 _LABEL_RECEIVED: str = "🕐 <b>Получено:</b>"
 _DT_FMT: str = "%d.%m.%Y %H:%M:%S UTC"
 _AGO_NOW: str = "только что"
@@ -34,13 +36,20 @@ def format_elapsed(seconds: int) -> str:
     )
 
 
-def build_caption(sender: str, ip: str, received_at: datetime) -> str:
+def build_caption(
+    sender: str,
+    sender_ip: str,
+    originating_ip: Optional[str],
+    received_at: datetime,
+) -> str:
     elapsed: int = int((datetime.now(timezone.utc) - received_at).total_seconds())
     time_str = received_at.strftime(_DT_FMT)
     ago_str = format_elapsed(elapsed)
     lines = [
         f"{_LABEL_FROM} {sender}",
-        f"{_LABEL_IP} {ip}",
-        f"{_LABEL_RECEIVED} {time_str} ({ago_str})",
+        f"{_LABEL_IP} {sender_ip}",
     ]
+    if originating_ip is not None:
+        lines.append(f"{_LABEL_ORIG_IP} {originating_ip}")
+    lines.append(f"{_LABEL_RECEIVED} {time_str} ({ago_str})")
     return "\n".join(lines)

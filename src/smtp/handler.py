@@ -12,7 +12,7 @@ from src.ports.mailbox import Mailbox
 from src.ports.session_store import SessionStore
 from src.services.caption_service import build_caption
 from src.services.filename_service import make_filename
-from src.services.mail_parser import get_subject, to_html
+from src.services.mail_parser import get_originating_ip, get_subject, to_html
 
 _REPLY_OK: str = "250 OK"
 _REPLY_NO_USER: str = "550 No such user"
@@ -62,8 +62,10 @@ class MailHandler:
 
         received_at: datetime = datetime.now(timezone.utc)
         sender: str = envelope.mail_from or ""
-        ip: str = session.peer[0] if session.peer else "?"
-        caption = build_caption(sender, ip, received_at)
+        sender_ip: str = session.peer[0] if session.peer else "?"
+        originating_ip: Optional[str] = get_originating_ip(raw)
+
+        caption = build_caption(sender, sender_ip, originating_ip, received_at)
 
         subject: Optional[str] = get_subject(raw)
         filename = make_filename(subject, sender)
@@ -79,14 +81,17 @@ class MailHandler:
                 subject=subject or "",
                 body_html=body_html,
                 received_at_unix=int(received_at.timestamp()),
+                sender_ip=sender_ip,
+                originating_ip=originating_ip,
             )
-            await self._mailbox.put(user_id, message)
+            polling_active: bool = await self._mailbox.put(user_id, message)
             try:
                 await self._bot.send_document(
                     chat_id=user_id,
                     document=BufferedInputFile(file_bytes, filename=filename),
                     caption=caption,
                     parse_mode=PARSE_MODE_HTML,
+                    disable_notification=polling_active,
                 )
                 logger.info(_LOG_DELIVERED.format(recipient=recipient, user_id=user_id))
             except Exception as exc:

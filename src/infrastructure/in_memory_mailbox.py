@@ -16,12 +16,13 @@ class InMemoryMailbox:
     def __init__(self) -> None:
         self._slots: Dict[int, _Slot] = {}
 
-    async def put(self, user_id: int, message: MailMessage) -> None:
+    async def put(self, user_id: int, message: MailMessage) -> bool:
         slot = self._slots.get(user_id)
         if slot is None:
-            return
+            return False
         slot.message = message
         slot.event.set()
+        return True
 
     async def poll(self, user_id: int, deadline: float, timeout: float) -> Optional[MailMessage]:
         remaining = min(deadline - time.monotonic(), timeout)

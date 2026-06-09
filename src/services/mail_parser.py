@@ -69,3 +69,14 @@ def get_subject(raw: bytes) -> Optional[str]:
         else:
             chunks.append(part_data)
     return "".join(chunks)
+
+
+_HEADER_X_ORIGINATING_IP: str = "X-Originating-IP"
+
+
+def get_originating_ip(raw: bytes) -> Optional[str]:
+    msg = email.message_from_bytes(raw)
+    value: Optional[str] = msg.get(_HEADER_X_ORIGINATING_IP)
+    if value is None:
+        return None
+    return value.strip()
