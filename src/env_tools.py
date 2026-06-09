@@ -64,20 +64,29 @@ def _create_env_file(env_file_path: str) -> None:
     if not path.exists():
         path.write_text("", encoding=ENCODING_UTF8)
 
-    existing_keys: Set[str] = set()
+    existing: Dict[str, str] = {}
     with path.open("r", encoding=ENCODING_UTF8) as f:
         for line in f:
             stripped = line.strip()
             if not stripped or stripped.startswith(_COMMENT) or _EQUALS not in stripped:
                 continue
-            key = stripped.split(_EQUALS, 1)[0].strip()
-            existing_keys.add(key)
+            key, value = stripped.split(_EQUALS, 1)
+            existing[key.strip()] = value.strip()
 
-    lines_to_add = [
-        f"{key}{_EQUALS}{value}"
-        for key, value in _ENV_DEFAULTS.items()
-        if key not in existing_keys
-    ]
+    domain = existing.get(_DOMAIN, "").lower().strip(".")
+
+    lines_to_add = []
+    for key, value in _ENV_DEFAULTS.items():
+        if key in existing:
+            continue
+
+        if key == _SSL_CERTFILE and domain:
+            value = f"{_LETSENCRYPT_LIVE}/{domain}/fullchain.pem"
+        elif key == _SSL_KEYFILE and domain:
+            value = f"{_LETSENCRYPT_LIVE}/{domain}/privkey.pem"
+
+        lines_to_add.append(f"{key}{_EQUALS}{value}")
+
     if lines_to_add:
         with path.open("a", encoding=ENCODING_UTF8) as f:
             f.write(_NEWLINE + _NEWLINE.join(lines_to_add))
