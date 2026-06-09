@@ -19,11 +19,15 @@ _ADMIN_IDS: str = "ADMIN_IDS"
 _API_HOST: str = "API_HOST"
 _API_PORT: str = "API_PORT"
 _TOKEN_TTL_DAYS: str = "TOKEN_TTL_DAYS"
+_SSL_CERTFILE: str = "SSL_CERTFILE"
+_SSL_KEYFILE: str = "SSL_KEYFILE"
 
 _ENV_FILE: str = ".env"
 _EQUALS: str = "="
 _NEWLINE: str = "\n"
 _COMMENT: str = "#"
+
+_LETSENCRYPT_LIVE: str = "/etc/letsencrypt/live"
 
 _ENV_DEFAULTS: Dict[str, Union[str, int]] = {
     _TOKEN: "",
@@ -35,8 +39,10 @@ _ENV_DEFAULTS: Dict[str, Union[str, int]] = {
     _LOG_FILE: "LeetBot.log",
     _ADMIN_IDS: "",
     _API_HOST: DEFAULT_BIND_HOST,
-    _API_PORT: 8000,
+    _API_PORT: 7625,
     _TOKEN_TTL_DAYS: 30,
+    _SSL_CERTFILE: "",
+    _SSL_KEYFILE: "",
 }
 
 _OPTIONAL_VALUES: List[str] = [
@@ -48,6 +54,8 @@ _OPTIONAL_VALUES: List[str] = [
     _API_HOST,
     _API_PORT,
     _TOKEN_TTL_DAYS,
+    _SSL_CERTFILE,
+    _SSL_KEYFILE,
 ]
 
 
@@ -100,6 +108,13 @@ def _load_or_generate_random_key(env_file_path: str) -> bytes:
     return bytes.fromhex(generated)
 
 
+def _resolve_ssl_path(env_key: str, domain: str, filename: str) -> str:
+    value = os.getenv(env_key, "").strip()
+    if value:
+        return value
+    return f"{_LETSENCRYPT_LIVE}/{domain}/{filename}"
+
+
 _create_env_file(_ENV_FILE)
 load_dotenv(_ENV_FILE)
 
@@ -123,3 +138,5 @@ API_PORT: int = int(_require_env(_API_PORT))
 TOKEN_TTL_DAYS: int = int(os.getenv(_TOKEN_TTL_DAYS, "30"))
 RANDOM_KEY: bytes = _load_or_generate_random_key(_ENV_FILE)
 SESSION_TTL_SECONDS: int = SESSION_MINUTES * 60
+SSL_CERTFILE: str = _resolve_ssl_path(_SSL_CERTFILE, DOMAIN, "fullchain.pem")
+SSL_KEYFILE: str = _resolve_ssl_path(_SSL_KEYFILE, DOMAIN, "privkey.pem")

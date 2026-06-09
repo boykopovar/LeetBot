@@ -15,6 +15,8 @@ from src.env_tools import (
     RANDOM_KEY,
     SMTP_HOST,
     SMTP_PORT,
+    SSL_CERTFILE,
+    SSL_KEYFILE,
     TOKEN_TTL_DAYS,
 )
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
@@ -36,6 +38,8 @@ async def _run_api(store: InMemorySessionStore, signer: JwtTokenService) -> None
         host=API_HOST,
         port=API_PORT,
         log_level="warning",
+        ssl_certfile=SSL_CERTFILE,
+        ssl_keyfile=SSL_KEYFILE,
     )
     server = uvicorn.Server(config)
     await server.serve()
