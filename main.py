@@ -13,13 +13,15 @@ from src.env_tools import (
     API_HOST,
     API_PORT,
     BOT_TOKEN,
+    DOMAIN,
     RANDOM_KEY,
     SMTP_HOST,
     SMTP_PORT,
     SSL_CERTFILE,
     SSL_KEYFILE,
-    TOKEN_TTL_DAYS, DOMAIN,
+    TOKEN_TTL_DAYS,
 )
+from src.infrastructure.in_memory_mailbox import InMemoryMailbox
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.logger import logger
 from src.services.token_service import JwtTokenService
@@ -32,8 +34,8 @@ logging.getLogger("aiogram.event").setLevel(logging.WARNING)
 suppress_smtp_noise()
 
 
-async def _run_api(store: InMemorySessionStore, signer: JwtTokenService) -> None:
-    app = create_app(store, signer)
+async def _run_api(store: InMemorySessionStore, signer: JwtTokenService, mailbox: InMemoryMailbox) -> None:
+    app = create_app(store, signer, mailbox)
     config = uvicorn.Config(
         app,
         host=API_HOST,
@@ -48,6 +50,7 @@ async def _run_api(store: InMemorySessionStore, signer: JwtTokenService) -> None
 
 async def main() -> None:
     store = InMemorySessionStore()
+    mailbox = InMemoryMailbox()
     signer = JwtTokenService(key=RANDOM_KEY, token_ttl_days=TOKEN_TTL_DAYS)
 
     bot = Bot(token=BOT_TOKEN)
@@ -55,7 +58,7 @@ async def main() -> None:
     docs_url = f"https://{DOMAIN}:{API_PORT}{DOCS_PATH}"
     register_all_routers(dp, store, signer, TOKEN_TTL_DAYS, docs_url)
 
-    mail_handler = MailHandler(store=store, bot=bot)
+    mail_handler = MailHandler(store=store, bot=bot, mailbox=mailbox)
     smtp_server = await start_smtp_server(
         handler=mail_handler,
         store=store,
@@ -68,7 +71,7 @@ async def main() -> None:
     try:
         await asyncio.gather(
             dp.start_polling(bot, handle_signals=False),
-            _run_api(store, signer),
+            _run_api(store, signer, mailbox),
         )
     finally:
         smtp_server.close()

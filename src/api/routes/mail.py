@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr
 
 from src.domain.api_token import ApiToken
 from src.env_tools import ADMIN_IDS, DOMAIN, RANDOM_KEY, SESSION_TTL_SECONDS
+from src.infrastructure.in_memory_mailbox import InMemoryMailbox
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.services.random_email_service import belongs_to_user, generate_local, random_nonce
 from src.services.session_service import get_active_email, register_session
@@ -16,8 +17,10 @@ _ERR_NOT_YOURS: str = "This address does not belong to your account"
 _MINUTES: int = SESSION_TTL_SECONDS // 60
 _ROUTE_SESSION: str = "/session"
 _ROUTE_SESSION_RANDOM: str = "/session/random"
+_ROUTE_MAIL_POLL: str = "/mail/poll"
 _ROUTER_PREFIX: str = "/mail"
 _ROUTER_TAG: str = "mail"
+_POLL_TIMEOUT_SECONDS: float = 30.0
 
 
 class _SessionResponse(BaseModel):
@@ -29,8 +32,16 @@ class _RegisterRequest(BaseModel):
     email: EmailStr
 
 
+class _MailMessageResponse(BaseModel):
+    sender: str
+    subject: str
+    body_html: str
+    received_at_unix: int
+
+
 def make_mail_router(
     store: InMemorySessionStore,
+    mailbox: InMemoryMailbox,
     token_dependency: Callable[[], ApiToken],
 ) -> APIRouter:
     router = APIRouter(prefix=_ROUTER_PREFIX, tags=[_ROUTER_TAG])
@@ -70,5 +81,20 @@ def make_mail_router(
         email = local + _AT + DOMAIN
         await register_session(store, token.user_id, email, SESSION_TTL_SECONDS)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
+
+    @router.get(_ROUTE_MAIL_POLL, response_model=Optional[_MailMessageResponse])
+    async def poll_mail(token: ApiToken = Depends(token_dependency)) -> Optional[_MailMessageResponse]:
+        deadline: Optional[float] = store.get_deadline(token.user_id)
+        if deadline is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ERR_NO_SESSION)
+        message = await mailbox.poll(token.user_id, deadline, _POLL_TIMEOUT_SECONDS)
+        if message is None:
+            return None
+        return _MailMessageResponse(
+            sender=message.sender,
+            subject=message.subject,
+            body_html=message.body_html,
+            received_at_unix=message.received_at_unix,
+        )
 
     return router

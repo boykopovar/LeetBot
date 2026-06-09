@@ -6,7 +6,9 @@ from aiogram.types import BufferedInputFile
 from aiosmtpd.smtp import Envelope, Session, SMTP as SMTPProtocol
 
 from src.constants import ENCODING_UTF8, PARSE_MODE_HTML
+from src.domain.mail_message import MailMessage
 from src.logger import logger
+from src.ports.mailbox import Mailbox
 from src.ports.session_store import SessionStore
 from src.services.caption_service import build_caption
 from src.services.filename_service import make_filename
@@ -21,9 +23,10 @@ _LOG_FAILED: str = "smtp: send_document to {user_id} failed: {exc}"
 
 
 class MailHandler:
-    def __init__(self, store: SessionStore, bot: Bot) -> None:
+    def __init__(self, store: SessionStore, bot: Bot, mailbox: Mailbox) -> None:
         self._store = store
         self._bot = bot
+        self._mailbox = mailbox
 
     async def handle_RCPT(
         self,
@@ -64,12 +67,20 @@ class MailHandler:
 
         subject: Optional[str] = get_subject(raw)
         filename = make_filename(subject, sender)
-        file_bytes = to_html(raw).encode(ENCODING_UTF8)
+        body_html = to_html(raw)
+        file_bytes = body_html.encode(ENCODING_UTF8)
 
         for recipient in envelope.rcpt_tos:
             user_id = self._store.find_user(recipient)
             if user_id is None:
                 continue
+            message = MailMessage(
+                sender=sender,
+                subject=subject or "",
+                body_html=body_html,
+                received_at_unix=int(received_at.timestamp()),
+            )
+            await self._mailbox.put(user_id, message)
             try:
                 await self._bot.send_document(
                     chat_id=user_id,

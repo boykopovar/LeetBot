@@ -1,7 +1,9 @@
 import asyncio
+import time
 from typing import Optional
 
 from src.domain.email_session import EmailSession
+from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.logger import logger
 from src.ports.session_store import SessionStore
 
@@ -19,13 +21,14 @@ async def _expiry_task(
 
 
 async def register_session(
-    store: SessionStore,
+    store: InMemorySessionStore,
     user_id: int,
     email: str,
     ttl_seconds: int,
 ) -> bool:
     had_session = store.get_email(user_id) is not None
-    store.register(EmailSession(user_id=user_id, email=email))
+    deadline = time.monotonic() + ttl_seconds
+    store.register(EmailSession(user_id=user_id, email=email), deadline)
     asyncio.create_task(_expiry_task(store, user_id, ttl_seconds))
     return had_session
 
