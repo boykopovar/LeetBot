@@ -55,7 +55,7 @@ def make_email_router(store: InMemorySessionStore) -> Router:
                 await message.answer(_MSG_NOT_YOURS)
                 return
 
-        had_session = register_session(store, user_id, normalized, SESSION_TTL_SECONDS)
+        had_session = await register_session(store, user_id, normalized, SESSION_TTL_SECONDS)
         template = _MSG_REPLACE if had_session else _MSG_START
         await message.answer(template.format(email=normalized, minutes=_MINUTES))
 

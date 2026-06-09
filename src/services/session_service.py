@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Tuple
+from typing import Optional
 
 from src.domain.email_session import EmailSession
 from src.logger import logger
@@ -18,17 +18,15 @@ async def _expiry_task(
     logger.info(_LOG_EXPIRED.format(user_id=user_id))
 
 
-def register_session(
+async def register_session(
     store: SessionStore,
     user_id: int,
     email: str,
     ttl_seconds: int,
 ) -> bool:
     had_session = store.get_email(user_id) is not None
-    task: asyncio.Task = asyncio.create_task(
-        _expiry_task(store, user_id, ttl_seconds)
-    )
-    store.register(EmailSession(user_id=user_id, email=email), task)
+    store.register(EmailSession(user_id=user_id, email=email))
+    asyncio.create_task(_expiry_task(store, user_id, ttl_seconds))
     return had_session
 
 

@@ -36,14 +36,14 @@ def make_mail_router(
     router = APIRouter(prefix=_ROUTER_PREFIX, tags=[_ROUTER_TAG])
 
     @router.get(_ROUTE_SESSION, response_model=_SessionResponse)
-    def get_session(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
+    async def get_session(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
         email: Optional[str] = get_active_email(store, token.user_id)
         if email is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ERR_NO_SESSION)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
 
     @router.post(_ROUTE_SESSION, response_model=_SessionResponse, status_code=status.HTTP_201_CREATED)
-    def register(
+    async def register(
         body: _RegisterRequest,
         token: ApiToken = Depends(token_dependency),
     ) -> _SessionResponse:
@@ -61,14 +61,14 @@ def make_mail_router(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=_ERR_NOT_YOURS,
                 )
-        register_session(store, token.user_id, normalized, SESSION_TTL_SECONDS)
+        await register_session(store, token.user_id, normalized, SESSION_TTL_SECONDS)
         return _SessionResponse(email=normalized, expires_in_minutes=_MINUTES)
 
     @router.post(_ROUTE_SESSION_RANDOM, response_model=_SessionResponse, status_code=status.HTTP_201_CREATED)
-    def register_random(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
+    async def register_random(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
         local = generate_local(RANDOM_KEY, token.user_id, random_nonce())
         email = local + _AT + DOMAIN
-        register_session(store, token.user_id, email, SESSION_TTL_SECONDS)
+        await register_session(store, token.user_id, email, SESSION_TTL_SECONDS)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
 
     return router

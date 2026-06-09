@@ -24,7 +24,7 @@ def make_random_router(store: InMemorySessionStore) -> Router:
         user_id = message.from_user.id
         local = generate_local(RANDOM_KEY, user_id, random_nonce())
         email = local + _AT + DOMAIN
-        register_session(store, user_id, email, SESSION_TTL_SECONDS)
+        await register_session(store, user_id, email, SESSION_TTL_SECONDS)
         await message.answer(_MSG_READY.format(email=email, minutes=_MINUTES))
 
     return RANDOM_CMD_ROUTER
