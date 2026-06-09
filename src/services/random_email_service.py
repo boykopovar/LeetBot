@@ -1,7 +1,9 @@
 import hashlib
 import os
 import struct
-from typing import List
+from typing import Dict, List
+
+from src.constants import BYTEORDER_BIG
 
 _SYLLABLES: List[str] = [
     "ba", "be", "bi", "bo", "bu", "ca", "ce", "ci", "co", "cu",
@@ -43,25 +45,25 @@ def _round_key(key: bytes, r: int) -> bytes:
 
 def _prf(rk: bytes, val: int, mod: int) -> int:
     digest = hashlib.blake2b(struct.pack(">Q", val), key=rk, digest_size=8).digest()
-    return int.from_bytes(digest, "big") % mod
+    return int.from_bytes(digest, BYTEORDER_BIG) % mod
 
 
 def _feistel_encrypt(key: bytes, value: int) -> int:
-    L: int = value // _HALF_LOW
-    R: int = value % _HALF_LOW
+    left: int = value // _HALF_LOW
+    right: int = value % _HALF_LOW
     for r in range(_ROUNDS):
         mod = _HALF_HIGH if r % 2 == 0 else _HALF_LOW
-        L, R = R, (L + _prf(_round_key(key, r), R, mod)) % mod
-    return L * _HALF_LOW + R
+        left, right = right, (left + _prf(_round_key(key, r), right, mod)) % mod
+    return left * _HALF_LOW + right
 
 
 def _feistel_decrypt(key: bytes, value: int) -> int:
-    L: int = value // _HALF_LOW
-    R: int = value % _HALF_LOW
+    left: int = value // _HALF_LOW
+    right: int = value % _HALF_LOW
     for r in range(_ROUNDS - 1, -1, -1):
         mod = _HALF_HIGH if r % 2 == 0 else _HALF_LOW
-        L, R = (R - _prf(_round_key(key, r), L, mod)) % mod, L
-    return L * _HALF_LOW + R
+        left, right = (right - _prf(_round_key(key, r), left, mod)) % mod, left
+    return left * _HALF_LOW + right
 
 
 def _encode(value: int) -> str:
@@ -78,9 +80,9 @@ def _decode(local: str) -> int:
     multiplier: int = 1
     pos: int = 0
     while pos < len(local):
-        matched: bool = False
+        matched = False
         for length in (3, 2):
-            chunk: str = local[pos:pos + length]
+            chunk = local[pos:pos + length]
             if chunk in index:
                 value += index[chunk] * multiplier
                 multiplier *= _N
@@ -93,17 +95,17 @@ def _decode(local: str) -> int:
 
 
 def generate_local(key: bytes, user_id: int, nonce: int) -> str:
-    inp: int = user_id * _NONCE_MOD + nonce
+    inp = user_id * _NONCE_MOD + nonce
     return _encode(_feistel_encrypt(key, inp))
 
 
 def random_nonce() -> int:
-    return int.from_bytes(os.urandom(2), "big")
+    return int.from_bytes(os.urandom(2), BYTEORDER_BIG)
 
 
 def belongs_to_user(key: bytes, user_id: int, local: str) -> bool:
     try:
-        target: int = _feistel_decrypt(key, _decode(local))
+        target = _feistel_decrypt(key, _decode(local))
     except ValueError:
         return False
     return target // _NONCE_MOD == user_id

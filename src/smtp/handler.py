@@ -5,20 +5,24 @@ from aiogram import Bot
 from aiogram.types import BufferedInputFile
 from aiosmtpd.smtp import Envelope, Session, SMTP as SMTPProtocol
 
+from src.constants import ENCODING_UTF8, PARSE_MODE_HTML
 from src.logger import logger
+from src.ports.session_store import SessionStore
 from src.services.caption_service import build_caption
 from src.services.filename_service import make_filename
 from src.services.mail_parser import get_subject, to_html
-from src.session.registry import SessionRegistry
 
 _REPLY_OK: str = "250 OK"
 _REPLY_NO_USER: str = "550 No such user"
-_ENCODING: str = "utf-8"
+_LOG_REJECTED: str = "smtp: rejected from {ip} (no active sessions)"
+_LOG_ACCEPTED: str = "smtp: accepted from {ip} to {address}"
+_LOG_DELIVERED: str = "smtp: delivered {recipient} to user {user_id}"
+_LOG_FAILED: str = "smtp: send_document to {user_id} failed: {exc}"
 
 
 class MailHandler:
-    def __init__(self, registry: SessionRegistry, bot: Bot) -> None:
-        self._registry = registry
+    def __init__(self, store: SessionStore, bot: Bot) -> None:
+        self._store = store
         self._bot = bot
 
     async def handle_RCPT(
@@ -30,10 +34,10 @@ class MailHandler:
         rcpt_options: List[str],
     ) -> str:
         ip: str = session.peer[0] if session.peer else "?"
-        if self._registry.find_user(address) is None:
-            logger.info(f"smtp: rejected from {ip} (no active sessions)")
+        if self._store.find_user(address) is None:
+            logger.info(_LOG_REJECTED.format(ip=ip))
             return _REPLY_NO_USER
-        logger.info(f"smtp: accepted from {ip} to {address}")
+        logger.info(_LOG_ACCEPTED.format(ip=ip, address=address))
         envelope.rcpt_tos.append(address)
         return _REPLY_OK
 
@@ -50,20 +54,20 @@ class MailHandler:
         raw: bytes = (
             raw_content
             if isinstance(raw_content, bytes)
-            else raw_content.encode(_ENCODING)
+            else raw_content.encode(ENCODING_UTF8)
         )
 
         received_at: datetime = datetime.now(timezone.utc)
         sender: str = envelope.mail_from or ""
         ip: str = session.peer[0] if session.peer else "?"
-        caption: str = build_caption(sender, ip, received_at)
+        caption = build_caption(sender, ip, received_at)
 
         subject: Optional[str] = get_subject(raw)
-        filename: str = make_filename(subject, sender)
-        file_bytes: bytes = to_html(raw).encode(_ENCODING)
+        filename = make_filename(subject, sender)
+        file_bytes = to_html(raw).encode(ENCODING_UTF8)
 
         for recipient in envelope.rcpt_tos:
-            user_id = self._registry.find_user(recipient)
+            user_id = self._store.find_user(recipient)
             if user_id is None:
                 continue
             try:
@@ -71,10 +75,10 @@ class MailHandler:
                     chat_id=user_id,
                     document=BufferedInputFile(file_bytes, filename=filename),
                     caption=caption,
-                    parse_mode="HTML",
+                    parse_mode=PARSE_MODE_HTML,
                 )
-                logger.info(f"smtp: delivered {recipient} to user {user_id}")
+                logger.info(_LOG_DELIVERED.format(recipient=recipient, user_id=user_id))
             except Exception as exc:
-                logger.error(f"smtp: send_document to {user_id} failed: {exc}")
+                logger.error(_LOG_FAILED.format(user_id=user_id, exc=exc))
 
         return _REPLY_OK

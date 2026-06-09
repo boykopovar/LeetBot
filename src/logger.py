@@ -2,12 +2,12 @@ import logging
 import time
 from typing import Optional
 
+from src.constants import ENCODING_UTF8
 from src.env_tools import LOG_FILE
 
 _FMT_DEFAULT: str = "%(asctime)s - %(levelname)s - %(message)s"
 _FMT_ERROR: str = "%(asctime)s - %(levelname)s - [%(funcName)s] %(message)s"
 _DATEFMT: str = "%d.%m.%y %H:%M"
-_ENCODING: str = "utf-8"
 
 
 class LevelFormatter(logging.Formatter):
@@ -42,7 +42,7 @@ _console_handler = logging.StreamHandler()
 _console_handler.setLevel(logging.INFO)
 _console_handler.setFormatter(_formatter)
 
-_file_handler = logging.FileHandler(LOG_FILE, encoding=_ENCODING)
+_file_handler = logging.FileHandler(LOG_FILE, encoding=ENCODING_UTF8)
 _file_handler.setLevel(logging.WARNING)
 _file_handler.setFormatter(_formatter)
 

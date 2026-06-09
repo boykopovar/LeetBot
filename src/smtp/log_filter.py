@@ -1,6 +1,7 @@
 import logging
+from typing import Tuple
 
-_SMTP_LOGGERS: tuple = ("mail.log", "aiosmtpd.smtp", "aiosmtpd")
+_SMTP_LOGGERS: Tuple[str, ...] = ("mail.log", "aiosmtpd.smtp", "aiosmtpd")
 
 
 class _DropAll(logging.Filter):

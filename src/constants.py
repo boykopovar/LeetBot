@@ -1,0 +1,4 @@
+ENCODING_UTF8: str = "utf-8"
+BYTEORDER_BIG: str = "big"
+PARSE_MODE_HTML: str = "HTML"
+DEFAULT_BIND_HOST: str = "0.0.0.0"

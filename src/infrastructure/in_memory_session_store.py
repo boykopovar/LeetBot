@@ -1,8 +1,10 @@
 import asyncio
 from typing import Dict, Optional, Tuple
 
+from src.domain.email_session import EmailSession
 
-class SessionRegistry:
+
+class InMemorySessionStore:
     def __init__(self) -> None:
         self._sessions: Dict[int, Tuple[str, asyncio.Task]] = {}
 
@@ -13,8 +15,8 @@ class SessionRegistry:
         entry = self._sessions.get(user_id)
         if entry is None:
             return None
-        email, _ = entry
-        return email
+        stored_email, _ = entry
+        return stored_email
 
     def find_user(self, email: str) -> Optional[int]:
         normalized = email.lower()
@@ -23,15 +25,12 @@ class SessionRegistry:
                 return user_id
         return None
 
-    def register(self, user_id: int, email: str, task: asyncio.Task) -> None:
-        existing = self._sessions.get(user_id)
+    def register(self, session: EmailSession, task: asyncio.Task) -> None:
+        existing = self._sessions.get(session.user_id)
         if existing is not None:
             _, old_task = existing
             old_task.cancel()
-        self._sessions[user_id] = (email, task)
+        self._sessions[session.user_id] = (session.email, task)
 
     def remove(self, user_id: int) -> None:
         self._sessions.pop(user_id, None)
-
-
-session_registry: SessionRegistry = SessionRegistry()

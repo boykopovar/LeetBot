@@ -5,6 +5,8 @@ from typing import Dict, List, Set, Union
 
 from dotenv import load_dotenv
 
+from src.constants import DEFAULT_BIND_HOST, ENCODING_UTF8
+
 _TOKEN: str = "BOT_TOKEN"
 _ENABLED_IDS: str = "ENABLED_IDS"
 _DOMAIN: str = "DOMAIN"
@@ -14,40 +16,48 @@ _SESSION_MINUTES: str = "SESSION_MINUTES"
 _LOG_FILE: str = "LOG_FILE"
 _ENCRYPT_KEY: str = "ENCRYPT_KEY"
 _ADMIN_IDS: str = "ADMIN_IDS"
+_API_HOST: str = "API_HOST"
+_API_PORT: str = "API_PORT"
+_TOKEN_TTL_DAYS: str = "TOKEN_TTL_DAYS"
 
-ENV_FILE: str = ".env"
-_UTF8: str = "utf-8"
+_ENV_FILE: str = ".env"
 _EQUALS: str = "="
 _NEWLINE: str = "\n"
 _COMMENT: str = "#"
 
-ENV_DEFAULTS: Dict[str, Union[str, int]] = {
+_ENV_DEFAULTS: Dict[str, Union[str, int]] = {
     _TOKEN: "",
     _ENABLED_IDS: "",
     _DOMAIN: "",
-    _SMTP_HOST: "0.0.0.0",
+    _SMTP_HOST: DEFAULT_BIND_HOST,
     _SMTP_PORT: 25,
     _SESSION_MINUTES: 5,
     _LOG_FILE: "LeetBot.log",
     _ADMIN_IDS: "",
+    _API_HOST: DEFAULT_BIND_HOST,
+    _API_PORT: 8000,
+    _TOKEN_TTL_DAYS: 30,
 }
 
-OPTIONAL_VALUES: List[str] = [
+_OPTIONAL_VALUES: List[str] = [
     _SMTP_HOST,
     _SMTP_PORT,
     _SESSION_MINUTES,
     _LOG_FILE,
     _ADMIN_IDS,
+    _API_HOST,
+    _API_PORT,
+    _TOKEN_TTL_DAYS,
 ]
 
 
-def create_env_file(env_file_path: str = ENV_FILE) -> None:
+def _create_env_file(env_file_path: str) -> None:
     path = Path(env_file_path)
     if not path.exists():
-        path.write_text("", encoding=_UTF8)
+        path.write_text("", encoding=ENCODING_UTF8)
 
     existing_keys: Set[str] = set()
-    with path.open("r", encoding=_UTF8) as f:
+    with path.open("r", encoding=ENCODING_UTF8) as f:
         for line in f:
             stripped = line.strip()
             if not stripped or stripped.startswith(_COMMENT) or _EQUALS not in stripped:
@@ -57,11 +67,11 @@ def create_env_file(env_file_path: str = ENV_FILE) -> None:
 
     lines_to_add = [
         f"{key}{_EQUALS}{value}"
-        for key, value in ENV_DEFAULTS.items()
+        for key, value in _ENV_DEFAULTS.items()
         if key not in existing_keys
     ]
     if lines_to_add:
-        with path.open("a", encoding=_UTF8) as f:
+        with path.open("a", encoding=ENCODING_UTF8) as f:
             f.write(_NEWLINE + _NEWLINE.join(lines_to_add))
 
 
@@ -71,43 +81,45 @@ def _split_int_set(raw: str) -> Set[int]:
     return set()
 
 
-def require_env(name: str) -> str:
+def _require_env(name: str) -> str:
     value = os.environ.get(name)
     if value is None:
         raise RuntimeError(f"{name} is not set")
     return value.strip()
 
 
-create_env_file()
-load_dotenv(ENV_FILE)
-
-_missing: List[str] = [
-    key for key in ENV_DEFAULTS
-    if key not in OPTIONAL_VALUES and not os.getenv(key)
-]
-if _missing:
-    raise RuntimeError(f"Not found in {ENV_FILE}: {', '.join(_missing)}")
-
-TOKEN: str = require_env(_TOKEN)
-DOMAIN: str = require_env(_DOMAIN).lower().strip(".")
-ENABLED_IDS: Set[int] = _split_int_set(require_env(_ENABLED_IDS))
-ADMIN_IDS: Set[int] = _split_int_set(os.getenv(_ADMIN_IDS, ""))
-SMTP_HOST: str = require_env(_SMTP_HOST)
-SMTP_PORT: int = int(require_env(_SMTP_PORT))
-SESSION_MINUTES: int = int(require_env(_SESSION_MINUTES))
-LOG_FILE: str = require_env(_LOG_FILE)
-
-
-def _load_or_generate_random_key() -> bytes:
+def _load_or_generate_random_key(env_file_path: str) -> bytes:
     raw: str = os.getenv(_ENCRYPT_KEY, "").strip()
     if raw:
         return bytes.fromhex(raw)
     generated: str = secrets.token_hex(32)
-    path = Path(ENV_FILE)
-    with path.open("a", encoding=_UTF8) as f:
+    path = Path(env_file_path)
+    with path.open("a", encoding=ENCODING_UTF8) as f:
         f.write(f"{_NEWLINE}{_ENCRYPT_KEY}{_EQUALS}{generated}")
     os.environ[_ENCRYPT_KEY] = generated
     return bytes.fromhex(generated)
 
 
-RANDOM_KEY: bytes = _load_or_generate_random_key()
+_create_env_file(_ENV_FILE)
+load_dotenv(_ENV_FILE)
+
+_missing: List[str] = [
+    key for key in _ENV_DEFAULTS
+    if key not in _OPTIONAL_VALUES and not os.getenv(key)
+]
+if _missing:
+    raise RuntimeError(f"Not found in {_ENV_FILE}: {', '.join(_missing)}")
+
+BOT_TOKEN: str = _require_env(_TOKEN)
+DOMAIN: str = _require_env(_DOMAIN).lower().strip(".")
+ENABLED_IDS: Set[int] = _split_int_set(_require_env(_ENABLED_IDS))
+ADMIN_IDS: Set[int] = _split_int_set(os.getenv(_ADMIN_IDS, ""))
+SMTP_HOST: str = _require_env(_SMTP_HOST)
+SMTP_PORT: int = int(_require_env(_SMTP_PORT))
+SESSION_MINUTES: int = int(_require_env(_SESSION_MINUTES))
+LOG_FILE: str = _require_env(_LOG_FILE)
+API_HOST: str = _require_env(_API_HOST)
+API_PORT: int = int(_require_env(_API_PORT))
+TOKEN_TTL_DAYS: int = int(os.getenv(_TOKEN_TTL_DAYS, "30"))
+RANDOM_KEY: bytes = _load_or_generate_random_key(_ENV_FILE)
+SESSION_TTL_SECONDS: int = SESSION_MINUTES * 60

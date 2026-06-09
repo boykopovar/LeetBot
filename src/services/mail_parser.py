@@ -3,9 +3,10 @@ from email.header import decode_header as _raw_decode_header
 from email.message import Message
 from typing import List, Optional, Tuple, Union
 
+from src.constants import ENCODING_UTF8
+
 _CT_HTML: str = "text/html"
 _CT_PLAIN: str = "text/plain"
-_ENC_UTF8: str = "utf-8"
 _ENC_FALLBACK: str = "latin-1"
 _HTML_WRAP: str = "<html><body><pre>{body}</pre></body></html>"
 _HTML_EMPTY: str = "<html><body></body></html>"
@@ -13,7 +14,7 @@ _HEADER_SUBJECT: str = "Subject"
 
 
 def _decode_bytes(payload: bytes, charset: Optional[str]) -> str:
-    enc = charset or _ENC_UTF8
+    enc = charset or ENCODING_UTF8
     try:
         return payload.decode(enc)
     except (UnicodeDecodeError, LookupError):

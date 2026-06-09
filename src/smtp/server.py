@@ -2,7 +2,7 @@ import asyncio
 
 from aiosmtpd.smtp import SMTP
 
-from src.session.registry import SessionRegistry
+from src.ports.session_store import SessionStore
 from src.smtp.handler import MailHandler
 
 
@@ -13,14 +13,14 @@ class _RejectProtocol(asyncio.Protocol):
 
 async def start_smtp_server(
     handler: MailHandler,
-    registry: SessionRegistry,
+    store: SessionStore,
     host: str,
     port: int,
 ) -> asyncio.AbstractServer:
     loop = asyncio.get_running_loop()
 
     def factory() -> asyncio.Protocol:
-        if not registry.has_active():
+        if not store.has_active():
             return _RejectProtocol()
         return SMTP(handler)
 
