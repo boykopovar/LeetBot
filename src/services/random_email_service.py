@@ -31,9 +31,10 @@ _SYLLABLES: List[str] = [
 ]
 
 _N: int = len(_SYLLABLES)
-_POSITIONS: int = 7
-_NONCE_BITS: int = 16
+_POSITIONS: int = 8
+_NONCE_BITS: int = 21
 _NONCE_MOD: int = 1 << _NONCE_BITS
+_CAPACITY: int = _N ** _POSITIONS
 _ROUNDS: int = 8
 _HALF_LOW: int = _N ** (_POSITIONS // 2)
 _HALF_HIGH: int = _N ** (_POSITIONS - _POSITIONS // 2)
@@ -96,11 +97,13 @@ def _decode(local: str) -> int:
 
 def generate_local(key: bytes, user_id: int, nonce: int) -> str:
     inp = user_id * _NONCE_MOD + nonce
+    if inp >= _CAPACITY:
+        raise OverflowError(user_id)
     return _encode(_feistel_encrypt(key, inp))
 
 
 def random_nonce() -> int:
-    return int.from_bytes(os.urandom(2), BYTEORDER_BIG)
+    return int.from_bytes(os.urandom(3), BYTEORDER_BIG) % _NONCE_MOD
 
 
 def belongs_to_user(key: bytes, user_id: int, local: str) -> bool:

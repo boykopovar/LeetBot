@@ -12,6 +12,7 @@ RANDOM_CMD_ROUTER: Router = Router()
 
 _AT: str = "@"
 _MSG_READY: str = "🎲 Ваш адрес: {email}\nПисьма будут перенаправляться {minutes} мин."
+_MSG_OVERFLOW: str = "Для вашего ID не можем выдать почту."
 _MINUTES: int = SESSION_TTL_SECONDS // 60
 
 
@@ -22,7 +23,12 @@ def make_random_router(store: InMemorySessionStore) -> Router:
             return
 
         user_id = message.from_user.id
-        local = generate_local(RANDOM_KEY, user_id, random_nonce())
+        try:
+            local = generate_local(RANDOM_KEY, user_id, random_nonce())
+        except OverflowError:
+            await message.answer(_MSG_OVERFLOW)
+            return
+
         email = local + _AT + DOMAIN
         await register_session(store, user_id, email, SESSION_TTL_SECONDS)
         await message.answer(_MSG_READY.format(email=email, minutes=_MINUTES))

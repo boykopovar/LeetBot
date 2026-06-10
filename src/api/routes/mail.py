@@ -14,6 +14,7 @@ _AT: str = "@"
 _ERR_NO_SESSION: str = "No active session"
 _ERR_WRONG_DOMAIN: str = "Email must use domain: {domain}"
 _ERR_NOT_YOURS: str = "This address does not belong to your account"
+_ERR_OVERFLOW: str = "Address generation is not available for your account ID"
 _MINUTES: int = SESSION_TTL_SECONDS // 60
 _ROUTE_SESSION: str = "/session"
 _ROUTE_SESSION_RANDOM: str = "/session/random"
@@ -79,7 +80,10 @@ def make_mail_router(
 
     @router.post(_ROUTE_SESSION_RANDOM, response_model=_SessionResponse, status_code=status.HTTP_201_CREATED)
     async def register_random(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
-        local = generate_local(RANDOM_KEY, token.user_id, random_nonce())
+        try:
+            local = generate_local(RANDOM_KEY, token.user_id, random_nonce())
+        except OverflowError:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_ERR_OVERFLOW)
         email = local + _AT + DOMAIN
         await register_session(store, token.user_id, email, SESSION_TTL_SECONDS)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
