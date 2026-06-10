@@ -35,3 +35,10 @@ async def register_session(
 
 def get_active_email(store: SessionStore, user_id: int) -> Optional[str]:
     return store.get_email(user_id)
+
+
+def stop_session(store: SessionStore, user_id: int) -> bool:
+    if store.get_email(user_id) is None:
+        return False
+    store.remove(user_id)
+    return True

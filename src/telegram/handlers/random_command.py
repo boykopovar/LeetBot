@@ -17,7 +17,7 @@ _MINUTES: int = SESSION_TTL_SECONDS // 60
 
 
 def make_random_router(store: InMemorySessionStore) -> Router:
-    @RANDOM_CMD_ROUTER.message(EnabledUserFilter(), Command("random"))
+    @RANDOM_CMD_ROUTER.message(EnabledUserFilter(), Command("random", "start"))
     async def handle_random(message: Message) -> None:
         if message.from_user is None:
             return

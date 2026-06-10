@@ -8,7 +8,7 @@ from src.env_tools import ADMIN_IDS, DOMAIN, RANDOM_KEY, SESSION_TTL_SECONDS
 from src.infrastructure.in_memory_mailbox import InMemoryMailbox
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.services.random_email_service import belongs_to_user, generate_local, random_nonce
-from src.services.session_service import get_active_email, register_session
+from src.services.session_service import get_active_email, register_session, stop_session
 
 _AT: str = "@"
 _ERR_NO_SESSION: str = "No active session"
@@ -17,9 +17,9 @@ _ERR_NOT_YOURS: str = "This address does not belong to your account"
 _ERR_OVERFLOW: str = "Address generation is not available for your account ID"
 _MINUTES: int = SESSION_TTL_SECONDS // 60
 _ROUTE_SESSION: str = "/session"
-_ROUTE_SESSION_RANDOM: str = "/session/random"
-_ROUTE_MAIL_POLL: str = "/mail/poll"
+_ROUTE_SESSION_RANDOM: str = f"{_ROUTE_SESSION}/random"
 _ROUTER_PREFIX: str = "/mail"
+_ROUTE_MAIL_POLL: str = f"{_ROUTER_PREFIX}/poll"
 _ROUTER_TAG: str = "mail"
 _POLL_TIMEOUT_SECONDS: float = 30.0
 
@@ -27,10 +27,6 @@ _POLL_TIMEOUT_SECONDS: float = 30.0
 class _SessionResponse(BaseModel):
     email: str
     expires_in_minutes: int
-
-
-class _RegisterRequest(BaseModel):
-    email: EmailStr
 
 
 class _MailMessageResponse(BaseModel):
@@ -42,6 +38,7 @@ class _MailMessageResponse(BaseModel):
     originating_ip: Optional[str]
 
 
+
 def make_mail_router(
     store: InMemorySessionStore,
     mailbox: InMemoryMailbox,
@@ -49,12 +46,21 @@ def make_mail_router(
 ) -> APIRouter:
     router = APIRouter(prefix=_ROUTER_PREFIX, tags=[_ROUTER_TAG])
 
+    class _RegisterRequest(BaseModel):
+        model_config = {"json_schema_extra": {"example": {"email": "user" + _AT + DOMAIN}}}
+        email: EmailStr
+
     @router.get(_ROUTE_SESSION, response_model=_SessionResponse)
     async def get_session(token: ApiToken = Depends(token_dependency)) -> _SessionResponse:
         email: Optional[str] = get_active_email(store, token.user_id)
         if email is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ERR_NO_SESSION)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
+
+    @router.delete(_ROUTE_SESSION, status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_session(token: ApiToken = Depends(token_dependency)) -> None:
+        if not stop_session(store, token.user_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_ERR_NO_SESSION)
 
     @router.post(_ROUTE_SESSION, response_model=_SessionResponse, status_code=status.HTTP_201_CREATED)
     async def register(
