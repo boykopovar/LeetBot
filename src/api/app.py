@@ -7,7 +7,7 @@ from src.infrastructure.in_memory_mailbox import InMemoryMailbox
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
 from src.ports.token_signer import TokenSigner
 
-_API_TITLE: str = "LetBot API"
+_API_TITLE: str = "LeetBot API"
 _API_VERSION: str = "1.0.0"
 _API_DESCRIPTION: str = (
     "Disposable email inbox via Telegram bot.\n\n"
