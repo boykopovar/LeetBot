@@ -47,7 +47,7 @@ _DESC_DELETE_SESSION: str = (
 )
 _DESC_POLL: str = (
     "Long-polls for an incoming message on the active session. "
-    "The connection is held open for up to 30 seconds. "
+    f"The connection is held open for up to {int(_POLL_TIMEOUT_SECONDS)} seconds. "
     "Returns the message as soon as it arrives, or `null` if the timeout elapses. "
     "Call repeatedly in a loop to continuously receive mail."
 )
