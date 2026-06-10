@@ -13,6 +13,7 @@ Authorization: Bearer <token>
 | Метод | Путь | Действие |
 |---|---|---|
 | `GET` | `/mail/session` | Получить активную сессию |
-| `POST` | `/mail/session` | Зарегистрировать адрес |
+| `POST` | `/mail/session` | Зарегистрировать конкретный адрес |
 | `POST` | `/mail/session/random` | Зарегистрировать случайный адрес |
+| `DELETE` | `/mail/session` | Остановить активную сессию |
 | `GET` | `/mail/poll` | Ожидать входящее письмо (long poll) |

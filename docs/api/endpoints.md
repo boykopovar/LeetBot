@@ -40,6 +40,19 @@
 | Код | Тело | Условие |
 |-----|------|---------|
 | 201 | `{"email": "...", "expires_in_minutes": N}` | Сессия создана |
+| 403 | `{"detail": "Address generation is not available for your account ID"}` | user_id вне допустимого диапазона |
+| 401 | `{"detail": "Invalid or expired token"}` | Токен недействителен |
+
+---
+
+## DELETE /mail/session
+
+Останавливает активную сессию. Эквивалент команды `/stop` в Telegram.
+
+| Код | Тело | Условие |
+|-----|------|---------|
+| 204 | — | Сессия успешно остановлена |
+| 404 | `{"detail": "No active session"}` | Нет активной сессии |
 | 401 | `{"detail": "Invalid or expired token"}` | Токен недействителен |
 
 ---

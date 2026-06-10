@@ -6,6 +6,7 @@ main.py
 │   ├── UpdateLogMiddleware           # логирование каждого апдейта
 │   ├── EnabledUserFilter             # белый список ENABLED_IDS
 │   ├── /random  -- RandomCmdRouter   # генерация нового адреса
+│   ├── /stop    -- StopCmdRouter     # остановка активной сессии
 │   ├── /apikey  -- ApikeyCmdRouter   # выдача JWT для REST API
 │   └── <text>   -- EmailCmdRouter    # ввод существующего адреса
 │
