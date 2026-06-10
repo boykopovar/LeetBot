@@ -26,7 +26,7 @@ _POLL_TIMEOUT_SECONDS: float = 30.0
 _DESC_GET_SESSION: str = (
     "Returns the currently active session for the authenticated user. "
     "A session is created via `POST /mail/session` or `POST /mail/session/random` "
-    "and expires after the configured `SESSION_MINUTES`."
+    f"and expires after {_MINUTES} minutes."
 )
 _DESC_POST_SESSION: str = (
     "Registers a session on a specific address belonging to the authenticated user. "
