@@ -1,3 +1,4 @@
+AT_SIGN: str = "@"
 ENCODING_UTF8: str = "utf-8"
 BYTEORDER_BIG: str = "big"
 PARSE_MODE_HTML: str = "HTML"

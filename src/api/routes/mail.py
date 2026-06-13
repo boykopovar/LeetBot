@@ -1,18 +1,17 @@
 from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
+from src.constants import AT_SIGN
 from src.domain.api_token import ApiToken
 from src.env_tools import ADMIN_IDS, DOMAIN, RANDOM_KEY, SESSION_TTL_SECONDS
 from src.infrastructure.in_memory_mailbox import InMemoryMailbox
 from src.infrastructure.in_memory_session_store import InMemorySessionStore
+from src.services.email_address_service import normalize_address
 from src.services.random_email_service import belongs_to_user, generate_local, random_nonce
 from src.services.session_service import get_active_email, register_session, stop_session
-
-_AT: str = "@"
 _ERR_NO_SESSION: str = "No active session"
-_ERR_WRONG_DOMAIN: str = "Email must use domain: {domain}"
 _ERR_NOT_YOURS: str = "This address does not belong to your account"
 _ERR_OVERFLOW: str = "Address generation is not available for your account ID"
 _MINUTES: int = SESSION_TTL_SECONDS // 60
@@ -88,8 +87,8 @@ def make_mail_router(
     router = APIRouter(prefix=_ROUTER_PREFIX, tags=[_ROUTER_TAG])
 
     class _RegisterRequest(BaseModel):
-        model_config = {"json_schema_extra": {"example": {"email": "user" + _AT + DOMAIN}}}
-        email: EmailStr = Field(description=_DESC_FIELD_EMAIL_REQ)
+        model_config = {"json_schema_extra": {"example": {"email": "user" + AT_SIGN + DOMAIN}}}
+        email: str = Field(description=_DESC_FIELD_EMAIL_REQ)
 
     @router.get(
         _ROUTE_SESSION,
@@ -127,14 +126,14 @@ def make_mail_router(
         body: _RegisterRequest,
         token: ApiToken = Depends(token_dependency),
     ) -> _SessionResponse:
-        normalized: str = str(body.email).lower()
-        domain_part = normalized.split(_AT)[-1]
-        if domain_part != DOMAIN:
+        try:
+            normalized: str = normalize_address(body.email, DOMAIN)
+        except SyntaxError as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=_ERR_WRONG_DOMAIN.format(domain=DOMAIN),
-            )
-        local = normalized.split(_AT)[0]
+                detail=str(exc),
+            ) from exc
+        local = normalized.split(AT_SIGN, 1)[0]
         if token.user_id not in ADMIN_IDS:
             if not belongs_to_user(RANDOM_KEY, token.user_id, local):
                 raise HTTPException(
@@ -157,7 +156,7 @@ def make_mail_router(
             local = generate_local(RANDOM_KEY, token.user_id, random_nonce())
         except OverflowError:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_ERR_OVERFLOW)
-        email = local + _AT + DOMAIN
+        email = local + AT_SIGN + DOMAIN
         await register_session(store, token.user_id, email, SESSION_TTL_SECONDS)
         return _SessionResponse(email=email, expires_in_minutes=_MINUTES)
 
