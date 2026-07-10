@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from src.api.dependencies import make_token_verifier
@@ -23,10 +24,19 @@ _SECURITY_SCHEME: dict = {
         "description": "JWT token obtained via /apikey command in Telegram.",
     }
 }
+_ALLOWED_METHODS: list[str] = ["GET", "POST", "DELETE", "OPTIONS"]
+_ALLOWED_HEADERS: list[str] = ["Authorization", "Content-Type"]
 
 
 def create_app(store: InMemorySessionStore, signer: TokenSigner, mailbox: InMemoryMailbox) -> FastAPI:
     app = FastAPI(title=_API_TITLE, version=_API_VERSION, description=_API_DESCRIPTION)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=_ALLOWED_METHODS,
+        allow_headers=_ALLOWED_HEADERS,
+    )
     token_dependency = make_token_verifier(signer)
     app.include_router(make_mail_router(store, mailbox, token_dependency))
 
