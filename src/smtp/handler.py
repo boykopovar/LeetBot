@@ -20,6 +20,7 @@ _LOG_REJECTED: str = "smtp: rejected from {ip} (no active sessions)"
 _LOG_ACCEPTED: str = "smtp: accepted from {ip} to {address}"
 _LOG_DELIVERED: str = "smtp: delivered {recipient} to user {user_id}"
 _LOG_FAILED: str = "smtp: send_document to {user_id} failed: {exc}"
+_LOG_EMPTY: str = "smtp: data from {ip} has no content, ignoring"
 
 
 class MailHandler:
@@ -52,6 +53,7 @@ class MailHandler:
     ) -> str:
         raw_content: Union[str, bytes, None] = envelope.content
         if raw_content is None:
+            logger.info(_LOG_EMPTY.format(ip=session.peer[0] if session.peer else "?"))
             return _REPLY_OK
 
         raw: bytes = (
